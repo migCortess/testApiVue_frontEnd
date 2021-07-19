@@ -15,16 +15,21 @@
                             </div>
                         </div>
                         <br>
+                        <div class="text-center">
+                            <div v-if="loading" class="spinner-border text-success" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
                         <h5 v-if="listTareas.length == 0">No Hay Tareas para realizar</h5>
-                        <ul class="list-group">
+                        <ul v-if="!loading" class="list-group">
                             <li v-for = "(tarea,index) of listTareas" :key = "index"
                                 class="list-group-item d-flex justify-content-between">
                                 <span class="cursor" v-bind:class="{'text-success': tarea.estado}"
-                                    v-on:click="editarTarea(tarea,index)">
+                                    v-on:click="editarTarea(tarea,tarea.id)">
                                     <i v-bind:class="[tarea.estado ? 'fas fa-check-circle' : 'far fa-circle']"></i>
                                 </span>
                                 {{tarea.nombre}}
-                                <span class="text-danger cursor" v-on:click="eliminarTarea(index)">
+                                <span class="text-danger cursor" v-on:click="eliminarTarea(tarea.id)">
                                     <i class="fas fa-trash-alt"></i>
                                 </span>
                             </li>
@@ -37,12 +42,16 @@
 </template>
 
 <script>
+import axios from "axios";
+
+const URL = "https://localhost:44318/api/Tarea/";
     export default {
         name: 'Tarea',
         data() {
             return{
                 tarea: '',
-                listTareas: []
+                listTareas: [],
+                loading: false
             }
         },
         methods: {
@@ -51,15 +60,57 @@
                     nombre: this.tarea,
                     estado: false
                 }
-                this.listTareas.push(tarea);
+                //this.listTareas.push(tarea);
+                this.loading = true;
+                axios.post(URL, tarea).then( response => {
+                    console.log(response);
+                    this.loading = false;
+                    this.obtenerTareas();
+                }).catch(error => {
+                    console.error(error);
+                    this.loading = false;
+                })
                 this.tarea = '';
             },
-            eliminarTarea(index){
-                this.listTareas.splice(index,1)
+            eliminarTarea(id){
+                this.loading = true;
+                //this.listTareas.splice(index,1)
+                axios.delete(URL + id).then(respose => {
+                    console.log(respose);
+                    this.loading = false;
+                    this.obtenerTareas();
+                }).catch(error => {
+                    console.log(error);
+                    this.loading = false;
+                });
             },
-            editarTarea(tarea,index){
-            this.listTareas[index].estado = !tarea.estado
-        }
+            editarTarea(tarea,id){
+            //this.listTareas[index].estado = !tarea.estado
+            this.loading = true;
+            axios.put(URL + id,tarea).then(response =>{
+                this.loading = false;
+                console.log(response);
+                this.obtenerTareas();
+            }).catch(error => {
+                console.error(error);
+                this.loading = false;
+            });
+
+             },
+             obtenerTareas(){
+                 this.loading = true;
+                 axios.get(URL).then(response =>{
+                     console.log(response);
+                     this.loading = false
+                     this.listTareas = response.data;
+                 }).catch( error => {
+                     console.error(error);
+                     this.loading = false;
+                 });
+             }
+        },
+        created: function(){
+            this.obtenerTareas();
         }
 
     }
